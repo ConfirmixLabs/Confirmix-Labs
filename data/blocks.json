@@ -1,0 +1,32 @@
+[
+  {
+    "index": 0,
+    "timestamp": 1744462115,
+    "transactions": [],
+    "prevHash": "0",
+    "hash": "b230cb651b177f1911626b5f4db844cd4fb13f237231055f0dbc0edf50260280",
+    "validator": "genesis",
+    "humanProof": "genesis_proof",
+    "reward": 0,
+    "isMultisig": false,
+    "signers": null,
+    "requiredSigners": 0,
+    "signatures": null,
+    "signature": null
+  },
+  {
+    "index": 0,
+    "timestamp": 1744462115,
+    "transactions": [],
+    "prevHash": "0",
+    "hash": "b230cb651b177f1911626b5f4db844cd4fb13f237231055f0dbc0edf50260280",
+    "validator": "genesis",
+    "humanProof": "genesis_proof",
+    "reward": 0,
+    "isMultisig": false,
+    "signers": null,
+    "requiredSigners": 0,
+    "signatures": null,
+    "signature": null
+  }
+]

@@ -143,19 +143,13 @@ func (ws *WebServer) setupRoutes() {
 	ws.router.HandleFunc("/api/health", ws.getHealthCheck).Methods("GET")
 
 	// Multi-signature routes
-	ws.router.HandleFunc("/api/multisig/wallet/create", ws.createMultiSigWallet).Methods("POST")
-	ws.router.HandleFunc("/api/multisig/wallet/{address}", ws.getMultiSigWallet).Methods("GET")
-	ws.router.HandleFunc("/api/multisig/transaction/create", ws.createMultiSigTransaction).Methods("POST")
-	ws.router.HandleFunc("/api/multisig/transaction/sign", ws.signMultiSigTransaction).Methods("POST")
-	ws.router.HandleFunc("/api/multisig/transaction/execute", ws.executeMultiSigTransaction).Methods("POST")
-	ws.router.HandleFunc("/api/multisig/transaction/{walletAddress}/{txID}/status", ws.getMultiSigTransactionStatus).Methods("GET")
-	ws.router.HandleFunc("/api/multisig/transaction/{walletAddress}/pending", ws.getMultiSigPendingTransactions).Methods("GET")
-	
-	// Multisig endpoints
-	ws.router.HandleFunc("/api/multisig/create", ws.createMultisigWallet).Methods("POST", "OPTIONS")
-	ws.router.HandleFunc("/api/multisig/sign", ws.signMultisigTransaction).Methods("POST", "OPTIONS")
-	ws.router.HandleFunc("/api/multisig/execute", ws.executeMultisigTransaction).Methods("POST", "OPTIONS")
-	ws.router.HandleFunc("/api/multisig/status/{txId}", ws.getMultisigTransactionStatus).Methods("GET", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/wallet/create", ws.createMultisigWallet).Methods("POST", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/wallet/{address}", ws.getMultiSigWallet).Methods("GET", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/transaction/create", ws.createMultiSigTransaction).Methods("POST", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/transaction/sign", ws.signMultisigTransaction).Methods("POST", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/transaction/execute", ws.executeMultisigTransaction).Methods("POST", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/transaction/{walletAddress}/{txID}/status", ws.getMultiSigTransactionStatus).Methods("GET", "OPTIONS")
+	ws.router.HandleFunc("/api/multisig/transaction/{walletAddress}/pending", ws.getMultiSigPendingTransactions).Methods("GET", "OPTIONS")
 }
 
 // Start starts the web server
@@ -1893,19 +1887,27 @@ func (ws *WebServer) createMultiSigWallet(w http.ResponseWriter, r *http.Request
 }
 
 func (ws *WebServer) getMultiSigWallet(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	
 	vars := mux.Vars(r)
 	address := vars["address"]
 
 	wallet, err := ws.blockchain.GetMultiSigWallet(address)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Wallet not found"})
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	json.NewEncoder(w).Encode(wallet)
+	response := struct {
+		Address      string   `json:"address"`
+		Owners       []string `json:"owners"`
+		RequiredSigs int      `json:"requiredSigs"`
+	}{
+		Address:      wallet.Address,
+		Owners:       wallet.Owners,
+		RequiredSigs: wallet.RequiredSigs,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func (ws *WebServer) createMultiSigTransaction(w http.ResponseWriter, r *http.Request) {

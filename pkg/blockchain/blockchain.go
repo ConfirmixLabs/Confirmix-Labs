@@ -44,6 +44,11 @@ type Blockchain struct {
 
 // NewBlockchain creates a new blockchain instance
 func NewBlockchain() (*Blockchain, error) {
+	// Initialize variables
+	var genesisReward *big.Int
+	var rewardPerOwner *big.Int
+	var ok bool
+
 	bc := &Blockchain{
 		Blocks:            make([]*Block, 0),
 		pendingTxs:        make([]*Transaction, 0),
@@ -145,11 +150,14 @@ func NewBlockchain() (*Blockchain, error) {
 	bc.Admins = append(bc.Admins, genesisMultiSigWallet.Address)
 
 	// Calculate genesis block reward (50 ConX tokens with 18 decimals)
-	genesisReward := new(big.Int)
-	genesisReward.SetString("50000000000000000000", 10) // 50 tokens with 18 decimals
+	genesisReward = new(big.Int)
+	_, ok = genesisReward.SetString("50000000000000000000", 10) // 50 tokens with 18 decimals
+	if !ok {
+		return nil, fmt.Errorf("failed to set genesis reward")
+	}
 
 	// Calculate reward per owner (total reward divided by 3)
-	rewardPerOwner := new(big.Int).Div(genesisReward, big.NewInt(3))
+	rewardPerOwner = new(big.Int).Div(genesisReward, big.NewInt(3))
 
 	// Distribute rewards to each owner
 	for _, owner := range genesisOwners {
@@ -194,16 +202,18 @@ func NewBlockchain() (*Blockchain, error) {
 	}
 
 	// Create admin multisig wallet
-	adminWallet := NewMultiSigWallet(adminAddress, []string{adminAddress}, 1)
+	adminWallet, err := NewMultiSigWallet(adminAddress, []string{adminAddress}, 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create admin multisig wallet: %v", err)
+	}
 	bc.multiSigWallets[adminAddress] = adminWallet
 	
 	// Add admin wallet as a validator
-	if err := bc.AddValidator(adminAddress, "admin"); err != nil {
-		return nil, fmt.Errorf("failed to add admin wallet as validator: %v", err)
-	}
-
+	bc.validators[adminAddress] = true
+	bc.humanProofs[adminAddress] = "admin"
+	
 	// Create genesis block
-	genesisBlock := &Block{
+	genesisBlock = &Block{
 		Index:        0,
 		Timestamp:    time.Now().Unix(),
 		Transactions: []*Transaction{},
@@ -220,7 +230,11 @@ func NewBlockchain() (*Blockchain, error) {
 	bc.Blocks = append(bc.Blocks, genesisBlock)
 
 	// Calculate genesis block reward (50 ConX tokens with 18 decimals)
-	genesisReward = new(big.Int).SetString("50000000000000000000", 10) // 50 tokens with 18 decimals
+	genesisReward = new(big.Int)
+	_, ok = genesisReward.SetString("50000000000000000000", 10) // 50 tokens with 18 decimals
+	if !ok {
+		return nil, fmt.Errorf("failed to set genesis reward")
+	}
 
 	// Calculate reward per owner (total reward divided by 3)
 	rewardPerOwner = new(big.Int).Div(genesisReward, big.NewInt(3))
@@ -1408,16 +1422,12 @@ func (bc *Blockchain) CreateMultiSigWallet(address string, owners []string, requ
 	return nil
 }
 
-// GetMultiSigWallet returns a multi-signature wallet by address
+// GetMultiSigWallet returns a multisig wallet by its address
 func (bc *Blockchain) GetMultiSigWallet(address string) (*MultiSigWallet, error) {
-	bc.mu.RLock()
-	defer bc.mu.RUnlock()
-
 	wallet, exists := bc.multiSigWallets[address]
 	if !exists {
-		return nil, errors.New("multi-signature wallet not found")
+		return nil, fmt.Errorf("multisig wallet not found: %s", address)
 	}
-
 	return wallet, nil
 }
 

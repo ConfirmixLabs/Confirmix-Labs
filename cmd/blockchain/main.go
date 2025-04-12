@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -238,12 +239,46 @@ func main() {
 	// Start API server if enabled
 	apiPort := 8080 // Default API port
 	webServer := api.NewWebServer(bc, hybridConsensus, validatorManager, governanceSystem, apiPort)
+	
+	// Create a channel to signal when the server is ready
+	serverReady := make(chan bool)
+	serverError := make(chan error)
+	
 	go func() {
+		log.Printf("Starting API server on port %d...", apiPort)
 		if err := webServer.Start(); err != nil {
 			log.Printf("API server error: %v", err)
+			serverError <- err
 		}
 	}()
-	log.Printf("API server started on port %d", apiPort)
+	
+	// Wait for the server to be ready
+	go func() {
+		// Give the server a moment to start
+		time.Sleep(2 * time.Second)
+		
+		// Try to connect to the health endpoint
+		for i := 0; i < 5; i++ {
+			resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/health", apiPort))
+			if err == nil && resp.StatusCode == http.StatusOK {
+				log.Printf("API server is ready")
+				serverReady <- true
+				return
+			}
+			time.Sleep(time.Second)
+		}
+		serverError <- fmt.Errorf("API server failed to start")
+	}()
+	
+	// Wait for either ready signal or error
+	select {
+	case <-serverReady:
+		log.Printf("API server started successfully on port %d", apiPort)
+	case err := <-serverError:
+		log.Fatalf("Failed to start API server: %v", err)
+	case <-time.After(10 * time.Second):
+		log.Fatalf("Timeout waiting for API server to start")
+	}
 
 	// Wait for interrupt signal
 	interruptChan := make(chan os.Signal, 1)
