@@ -1,0 +1,17 @@
+[
+  {
+    "index": 0,
+    "timestamp": 1744227819,
+    "transactions": [],
+    "prevHash": "0",
+    "hash": "0f4477d39147c6549705436c8d69390f514910794fce4d0a160762b164f1258f",
+    "validator": "genesis",
+    "humanProof": "genesis_proof",
+    "reward": 0,
+    "isMultisig": false,
+    "signers": null,
+    "requiredSigners": 0,
+    "signatures": null,
+    "signature": null
+  }
+]
